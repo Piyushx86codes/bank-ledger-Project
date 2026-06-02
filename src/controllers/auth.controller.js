@@ -40,6 +40,38 @@ async function userRegisterController(req,res){
 }
 
 
+async function userLoginController(req,res){
+      const {email,password} = req.body;
+      const user = await userModel.findOne({email}).select("+password");
+      if(!user){
+        return res.status(401).json({
+            success:false,
+            message:"user email or password is Invalid",
+        })
+      }
+
+      const isvalidPassword = await user.comparepassword(password);
+
+      if(!isvalidPassword){
+        return res.staus(401).json({
+            success:false,
+            message:"Password is InValid",
+        })
+      }
+
+      const token = jwt.sign({userid:user._id},process.env.JWT_SECRET,{
+        expiresIn:'3d'
+    })
+
+    res.cookie("token",token);
+
+    res.status(200).json({
+        success:true,
+        message:"LoggedIn Successfully",
+    })
+}
+
 module.exports ={
     userRegisterController,
+    userLoginController,
 }
