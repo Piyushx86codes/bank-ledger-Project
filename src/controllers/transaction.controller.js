@@ -1,10 +1,79 @@
 const transactionModel = require("../models/transaction.model");
 const ledgerModel = require("../models/ledger.model");
 const emailService = require("../services/email.service");
+const AccountModel = require("../models/account.model")
 
 
 async function createTransaction(req,res){
-    const {fromAccount,toAccount,amount,idempotencykey} = req.body;
+    const {fromAccount,toAccount,amount,idempotencyKey} = req.body;
+    if(!fromAccount || !toAccount || !amount || !idempotecy){
+        return res.status(400).json({
+            success:false,
+            message:"fromAccount,toAccount,amount and idempotency key is required",
+        })
+    }
+
+    const fromUserAccount = await AccountModel.findOne({
+        _id:fromAccount,
+    })
+
+    const toUserAccount = await AccountModel.findOne({
+        _id:toAccount
+    })
+
+    if(!fromUserAccount || !toUserAccount){
+        return res.status(400).json({
+            success:false,
+            message:"Invalid fromAccount or toAccount"
+        })
+    }
+
+
+
+    //validate idempotency Key//
+    const isTransactionAlreadyExists = await transactionModel.findOne({
+        idempotencyKey:idempotencyKey
+    })
+
+
+    if(isTransactionAlreadyExists){
+        if(isTransactionAlreadyExists.status === "COMPLETED"){
+            return res.status(200).json({
+                success:true,
+                message:"transaction already proccessed",
+                transaction:isTransactionalAlreadyExists
+            })
+        }
+
+        if(isTransactionAlreadyExists.status === "PENDING"){
+            return res.status(202).json({
+                message:"transaction is still processing"
+            })
+        }
+
+        if(isTransactionAlreadyExists.status === "FAILED"){
+            return res.status(500).json({
+                message:"transaction processing failed, please retry"
+            })
+        }
+
+        if(isTransactionAlreadyExists.status === " REVERSED"){
+            return res.status(500).json({
+                message:"transaction has been reversed, please retry"
+            })
+        }
+    }
+
+
+    //check account status//
+    if(fromUserAccount.status != "ACTIVE" || toUserAccount.status != "ACTIVE"){
+        return res.status(500).json({
+            message:"fromUserAccount and toUserAccount must be active to proceed for transactions",
+        })
+    } 
+
+    //derive sender balance//
+    const balance = await  fromUserAccount.getbalance();     
 }
 
 
