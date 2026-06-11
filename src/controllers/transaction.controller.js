@@ -1,7 +1,7 @@
 const transactionModel = require("../models/transaction.model");
 const ledgerModel = require("../models/ledger.model");
 const emailService = require("../services/email.service");
-const AccountModel = require("../models/account.model");
+const accountModel = require("../models/account.model");
 const mongoose = require("mongoose");
 
 
@@ -177,6 +177,10 @@ async function createInitialFundsTransaction(req, res) {
         transaction: transaction._id,
         type: "DEBIT"
     } ], { session })
+
+    await(()=>{
+      return new Promise((resolve)=>setTimeOut(resolve,100* 1000));
+    })()
 
     const creditLedgerEntry = await ledgerModel.create([ {
         account: toAccount,
